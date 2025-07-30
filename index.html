@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SQL Practice Game</title>
+  <style>
+    body {
+      background-color: #121212;
+      color: #e0e0e0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    textarea, input {
+      width: 100%;
+      padding: 12px;
+      margin-top: 10px;
+      background-color: #1e1e1e;
+      border: 1px solid #333;
+      color: #fff;
+      font-family: monospace;
+    }
+    button {
+      background-color: #03dac6;
+      color: #000;
+      border: none;
+      padding: 10px 20px;
+      margin: 10px;
+      cursor: pointer;
+      font-weight: bold;
+      border-radius: 8px;
+    }
+    button:hover {
+      background-color: #018786;
+    }
+    .message {
+      font-size: 24px;
+      font-weight: bold;
+      margin-top: 20px;
+      color: #00ff99;
+    }
+    .wrong-message {
+      color: #ff4081;
+    }
+    .score {
+      font-size: 20px;
+      margin-top: 20px;
+    }
+    .feedback {
+      font-size: 28px;
+      font-weight: bold;
+      margin-bottom: 20px;
+    }
+    .hint-section {
+      margin-top: 10px;
+    }
+    .hint-text {
+      background-color: #2e2e2e;
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 6px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div id="feedback" class="feedback"></div>
+    <h1>SQL Challenge Game</h1>
+    <div id="question"></div>
+    <textarea id="answer" rows="5" placeholder="Type your SQL answer here..."></textarea>
+    <button onclick="checkAnswer()">Submit</button>
+    <button onclick="showSolution()">Show Solution</button>
+    <button onclick="showHint(1)">Hint 1 (-5 pts)</button>
+    <button onclick="showHint(2)">Hint 2 (-5 pts)</button>
+    <div class="hint-section">
+      <div id="hint1" class="hint-text"></div>
+      <div id="hint2" class="hint-text"></div>
+    </div>
+    <div id="solution" style="margin-top:20px;"></div>
+    <div class="score" id="scoreDisplay"></div>
+  </div>
+
+  <script>
+    const questions = [
+      {
+        question: `Table: Employees<br>
+        | ID | Name | Department | Salary |<br>
+        |----|------|------------|--------|<br>
+        | 1  | Ram  | IT         | 50000  |<br>
+        | 2  | Shyam| HR         | 40000  |<br>
+        | 3  | Ravi | IT         | 60000  |<br><br>
+        Get the names of employees in IT department.`,
+        answer: "SELECT Name FROM Employees WHERE Department = 'IT';",
+        solution: "Is query mein hum `WHERE` clause ka use kar rahe hain IT department ke employees filter karne ke liye.",
+        hints: ["Use WHERE to filter departments.", "Target only 'IT' entries in Department column."]
+      },
+      {
+        question: `Table: Students<br>
+        | ID | Name | Marks |<br>
+        |----|------|-------|<br>
+        | 1  | A    | 70    |<br>
+        | 2  | B    | 90    |<br>
+        | 3  | C    | 80    |<br><br>
+        Get the second highest mark.`,
+        answer: "SELECT MAX(Marks) FROM Students WHERE Marks < (SELECT MAX(Marks) FROM Students);",
+        solution: "Yeh ek nested query hai jahan pehle hum sabse bada marks nikaal rahe hain, fir usse chhota MAX nikaal rahe hain.",
+        hints: ["Use nested MAX().", "Exclude the top MAX to get second."]
+      },
+      // Add 8 more such questions with moderate nested/joins/views etc.
+    ];
+
+    let currentQuestion = 0;
+    let score = 0;
+    let solutionViewed = false;
+    let hintUsed = 0;
+
+    function loadQuestion() {
+      const q = questions[currentQuestion];
+      document.getElementById("question").innerHTML = `<strong>Question ${currentQuestion + 1}:</strong><br>${q.question}`;
+      document.getElementById("answer").value = "";
+      document.getElementById("solution").innerHTML = "";
+      document.getElementById("feedback").innerText = "";
+      document.getElementById("hint1").style.display = 'none';
+      document.getElementById("hint2").style.display = 'none';
+      document.getElementById("hint1").innerText = "";
+      document.getElementById("hint2").innerText = "";
+      solutionViewed = false;
+      hintUsed = 0;
+    }
+
+    function normalize(sql) {
+      return sql.replace(/\s+/g, ' ').trim().toLowerCase();
+    }
+
+    function checkAnswer() {
+      const userAns = normalize(document.getElementById("answer").value);
+      const correctAns = normalize(questions[currentQuestion].answer);
+
+      if (userAns === correctAns) {
+        let earned = solutionViewed ? 0 : (hintUsed === 0 ? 10 : 5);
+        score += earned;
+        document.getElementById("feedback").innerText = "Let's go munchkin! +" + earned;
+        document.getElementById("feedback").style.color = "#00ff99";
+        currentQuestion++;
+        if (currentQuestion < questions.length) {
+          setTimeout(loadQuestion, 1000);
+        } else {
+          document.getElementById("question").innerHTML = "<h2>CONGRATULATIONS 🎉</h2><p>You scored " + score + "/100</p><button onclick='restart()'>Restart</button>";
+          document.getElementById("answer").style.display = 'none';
+          document.getElementById("solution").innerHTML = "";
+          document.getElementById("feedback").innerText = "";
+          document.getElementById("scoreDisplay").innerText = "";
+        }
+      } else {
+        document.getElementById("feedback").innerText = "Wrong answer. Try again!";
+        document.getElementById("feedback").style.color = "#ff4081";
+      }
+      document.getElementById("scoreDisplay").innerText = `Score: ${score}/100`;
+    }
+
+    function showSolution() {
+      document.getElementById("solution").innerHTML = `<strong>Solution:</strong><br>${questions[currentQuestion].answer}<br><br><em>${questions[currentQuestion].solution}</em>`;
+      solutionViewed = true;
+      document.getElementById("feedback").innerText = "It's okay bebu, you got the next one!";
+      document.getElementById("feedback").style.color = "#ff4081";
+    }
+
+    function showHint(hintNumber) {
+      hintUsed = 1;
+      const hintText = questions[currentQuestion].hints[hintNumber - 1];
+      const hintElement = document.getElementById(`hint${hintNumber}`);
+      hintElement.style.display = 'block';
+      hintElement.innerText = `Hint ${hintNumber}: ${hintText}`;
+    }
+
+    function restart() {
+      currentQuestion = 0;
+      score = 0;
+      document.getElementById("answer").style.display = 'block';
+      loadQuestion();
+      document.getElementById("scoreDisplay").innerText = "Score: 0/100";
+    }
+
+    loadQuestion();
+  </script>
+</body>
+</html>
